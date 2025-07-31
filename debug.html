@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Supabase</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Supabase Debug</h1>
+    <div id="output">Starting tests...</div>
+
+    <script type="module">
+        const output = document.getElementById('output');
+        
+        function log(message, type = 'info') {
+            const p = document.createElement('p');
+            p.className = type;
+            p.textContent = message;
+            output.appendChild(p);
+            console.log(message);
+        }
+
+        async function runTests() {
+            try {
+                log('1. Testing Supabase import...');
+                const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+                log('✅ Supabase import successful', 'success');
+
+                log('2. Creating Supabase client...');
+                const supabaseUrl = 'https://kfxbsrsahttsuckisktw.supabase.co';
+                const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmeGJzcnNhaHR0c3Vja2lza3R3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE3MzkzNDIsImV4cCI6MjA2NzMxNTM0Mn0.sANt0iU26PDQTGpijtdMPJM6RtNvP08OK9jCXTgh-HY';
+                
+                const supabase = createClient(supabaseUrl, supabaseKey);
+                log('✅ Client created', 'success');
+
+                log('3. Testing anonymous auth...');
+                const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+                
+                if (authError) {
+                    log(`❌ Auth failed: ${authError.message}`, 'error');
+                    return;
+                }
+                
+                log(`✅ Auth successful! User ID: ${authData.user.id}`, 'success');
+
+                log('4. Testing database connection...');
+                const { data, error } = await supabase.from('games').select('count', { count: 'exact' });
+                
+                if (error) {
+                    log(`❌ Database error: ${error.message}`, 'error');
+                    if (error.code === '42P01') {
+                        log('💡 Table "games" does not exist. Did you run schema.sql?', 'info');
+                    }
+                } else {
+                    log('✅ Database connection successful!', 'success');
+                }
+
+            } catch (error) {
+                log(`❌ Unexpected error: ${error.message}`, 'error');
+                console.error('Full error:', error);
+            }
+        }
+
+        runTests();
+    </script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Database Inspector</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Database Inspector</h1>
+    <button onclick="inspectGames()">Inspect Games Table</button>
+    <button onclick="inspectPlayers()">Inspect Players Table</button>
+    <div id="results"></div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+        const supabase = createClient(
+            'https://kfxbsrsahttsuckisktw.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmeGJzcnNhaHR0c3Vja2lza3R3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE3MzkzNDIsImV4cCI6MjA2NzMxNTM0Mn0.sANt0iU26PDQTGpijtdMPJM6RtNvP08OK9jCXTgh-HY'
+        );
+
+        const results = document.getElementById('results');
+
+        window.inspectGames = async function() {
+            results.innerHTML = '<p>Loading games...</p>';
+            const { data, error } = await supabase.from('games').select('*');
+            
+            if (error) {
+                results.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            } else {
+                results.innerHTML = `<h3>Games Table (${data.length} records):</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            }
+        };
+
+        window.inspectPlayers = async function() {
+            results.innerHTML = '<p>Loading players...</p>';
+            const { data, error } = await supabase.from('players').select('*');
+            
+            if (error) {
+                results.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            } else {
+                results.innerHTML = `<h3>Players Table (${data.length} records):</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            }
+        };
+
+        // Show current week ID
+        function getWeekId(date = new Date()) {
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+            return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+        }
+
+        results.innerHTML = `<p><strong>Current Week ID:</strong> ${getWeekId()}</p>`;
+    </script>
+</body>
+</html>

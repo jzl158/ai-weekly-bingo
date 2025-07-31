@@ -1,0 +1,584 @@
+\<\!DOCTYPE html\>  
+\<html lang\="en"\>  
+\<head\>  
+   \<meta charset\="UTF-8"\>  
+   \<meta name\="viewport" content\="width=device-width, initial-scale=1.0"\>  
+   \<title\>AI Weekly Bingo\</title\>  
+   \<script src\="https://cdn.tailwindcss.com"\>\</script\>  
+   \<link href\="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700\&display=swap" rel\="stylesheet"\>  
+   \<style\>  
+       body {  
+           font-family: 'Inter', sans-serif;  
+       }  
+       .bingo-grid {  
+           display: grid;  
+           grid-template-columns: repeat(5, minmax(0, 1fr));  
+           gap: 0.5rem;  
+       }  
+       .bingo-cell {  
+           aspect-ratio: 1 / 1;  
+           display: flex;  
+           justify-content: center;  
+           align-items: center;  
+           border-radius: 0.5rem;  
+           font-weight: 600;  
+           font-size: 1.25rem;  
+           transition: all 0.3s ease;  
+           box-shadow: 0 2px 4px rgba(0,0,0,0.05);  
+       }  
+       .bingo-cell.header {  
+           background-color: \#4f46e5; /\* Indigo 600 \*/  
+           color: white;  
+           font-size: 1.5rem;  
+       }  
+       .bingo-cell.marked {  
+           background-color: \#10b981; /\* Emerald 500 \*/  
+           color: white;  
+           transform: scale(1.05);  
+           box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);  
+       }  
+       .pulse-animation {  
+           animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;  
+       }  
+       @keyframes pulse {  
+           0%, 100% { opacity: 1; }  
+           50% { opacity: .5; }  
+       }  
+   \</style\>  
+\</head\>  
+\<body class\="bg-gray-100 text-gray-800"\>
+
+   \<div class\="container mx-auto p-4 md:p-8 max-w-4xl"\>  
+       \<header class\="text-center mb-6"\>  
+           \<h1 class\="text-4xl md:text-5xl font-bold text-indigo-600"\>Weekly AI Bingo\</h1\>  
+           \<p class\="text-gray-500 mt-2"\>A new number is revealed each day. First to BINGO wins\!\</p\>  
+       \</header\>
+
+       \<div id\="user-info" class\="p-4 bg-white rounded-lg shadow-md mb-6 text-center"\>  
+           \<p class\="text-sm text-gray-500"\>Your User ID (share with friends to play together):\</p\>  
+           \<p id\="userIdDisplay" class\="font-mono bg-gray-100 p-2 rounded mt-1 text-indigo-700 break-all"\>Connecting...\</p\>  
+       \</div\>
+
+       \<main id\="game-container" class\="bg-white p-6 rounded-lg shadow-lg"\>  
+           \<\!-- Initial Loading State \--\>  
+           \<div id\="loading-state" class\="text-center py-12"\>  
+               \<p class\="text-xl font-semibold text-gray-600 pulse-animation"\>Connecting to the Bingo Hall...\</p\>  
+           \</div\>
+
+           \<\!-- Play Button State \--\>  
+           \<div id\="play-state" class\="hidden text-center py-12"\>  
+               \<h2 id\="play-state-title" class\="text-2xl font-bold mb-4"\>Join this week's game\!\</h2\>  
+               \<p id\="play-state-message" class\="text-gray-600 mb-6 max-w-md mx-auto"\>A new game is running. Click below to get your random Bingo card and start playing.\</p\>  
+               \<button id\="playButton" class\="bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700 transition-transform transform hover:scale-105 shadow-lg"\>  
+                   Play Bingo  
+               \</button\>  
+           \</div\>  
+            
+           \<\!-- Game Over State \--\>  
+           \<div id\="game-over-state" class\="hidden text-center py-12"\>  
+                \<div class\="mb-4"\>  
+                   \<svg class\="mx-auto h-16 w-16 text-amber-400" xmlns\="http://www.w3.org/2000/svg" fill\="none" viewBox\="0 0 24 24" stroke-width\="1.5" stroke\="currentColor"\>  
+                     \<path stroke-linecap\="round" stroke-linejoin\="round" d\="M16.5 18.75h-9a9 9 0 1 1 9 0zM12 14.25v-4.5m0 4.5h.008v.008H12v-.008z" /\>  
+                     \<path stroke-linecap\="round" stroke-linejoin\="round" d\="M4.875 14.25a9.004 9.004 0 0 1 14.25 0M8.25 12h7.5" /\>  
+                     \<path stroke-linecap\="round" stroke-linejoin\="round" d\="M12 14.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5z" /\>  
+                     \<path stroke-linecap\="round" stroke-linejoin\="round" d\="M16.5 18.75a9 9 0 1 1-9 0" /\>  
+                   \</svg\>  
+               \</div\>  
+               \<h2 id\="game-over-title" class\="text-2xl font-bold mb-4 text-amber-500"\>This week's game has a winner\!\</h2\>  
+               \<div id\="winner-info" class\="bg-gray-100 p-4 rounded-lg inline-block"\>  
+                   \<\!-- Winner details will be injected here \--\>  
+               \</div\>  
+               \<p class\="text-gray-600 mt-6"\>A new game will start automatically next week. Check back soon\!\</p\>  
+           \</div\>
+
+           \<\!-- Active Game State \--\>  
+           \<div id\="active-game-state" class\="hidden"\>  
+               \<div class\="grid grid-cols-1 md:grid-cols-3 gap-6"\>  
+                   \<\!-- Bingo Board \--\>  
+                   \<div class\="md:col-span-2"\>  
+                       \<h3 class\="text-xl font-bold mb-4 text-center"\>Your Bingo Card\</h3\>  
+                       \<div class\="bingo-grid"\>  
+                           \<\!-- BINGO headers \--\>  
+                           \<div class\="bingo-cell header"\>B\</div\>  
+                           \<div class\="bingo-cell header"\>I\</div\>  
+                           \<div class\="bingo-cell header"\>N\</div\>  
+                           \<div class\="bingo-cell header"\>G\</div\>  
+                           \<div class\="bingo-cell header"\>O\</div\>  
+                       \</div\>  
+                       \<div id\="bingo-board" class\="bingo-grid mt-2"\>  
+                           \<\!-- JS will populate this \--\>  
+                       \</div\>  
+                   \</div\>
+
+                   \<\!-- Called Numbers \--\>  
+                   \<div class\="md:col-span-1 bg-gray-50 p-4 rounded-lg"\>  
+                       \<h3 class\="text-xl font-bold mb-4 text-center"\>Called Numbers\</h3\>  
+                       \<div id\="called-numbers-list" class\="flex flex-wrap justify-center gap-2"\>  
+                           \<\!-- JS will populate this \--\>  
+                       \</div\>  
+                        \<div id\="last-called-container" class\="text-center mt-6 p-4 bg-indigo-100 rounded-lg"\>  
+                           \<p class\="text-sm text-indigo-700"\>Last Called:\</p\>  
+                           \<p id\="last-called-number" class\="text-3xl font-bold text-indigo-600"\>\--\</p\>  
+                       \</div\>  
+                   \</div\>  
+               \</div\>  
+                \<div id\="bingo-status" class\="text-center mt-6 p-4 bg-green-100 rounded-lg hidden"\>  
+                   \<p class\="text-2xl font-bold text-green-700"\>BINGO\! You've won\!\</p\>  
+                   \<p class\="text-gray-600"\>Notifying the game master...\</p\>  
+               \</div\>  
+           \</div\>  
+       \</main\>
+
+   \</div\>
+
+   \<script type\="module"\>  
+       import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+       // \--- DOM Elements \---  
+       const loadingState \= document.getElementById('loading-state');  
+       const playState \= document.getElementById('play-state');  
+       const gameOverState \= document.getElementById('game-over-state');  
+       const activeGameState \= document.getElementById('active-game-state');  
+       const playButton \= document.getElementById('playButton');  
+       const userIdDisplay \= document.getElementById('userIdDisplay');  
+       const bingoBoardContainer \= document.getElementById('bingo-board');  
+       const calledNumbersList \= document.getElementById('called-numbers-list');  
+       const lastCalledNumberEl \= document.getElementById('last-called-number');  
+       const winnerInfoEl \= document.getElementById('winner-info');  
+       const gameOverTitleEl \= document.getElementById('game-over-title');  
+       const bingoStatusEl \= document.getElementById('bingo-status');
+
+       // \--- Supabase Config \---  
+       const supabaseUrl \= typeof \_\_supabase\_url \!== 'undefined' ? \_\_supabase\_url : 'https://kfxbsrsahttsuckisktw.supabase.co
+';  
+       const supabaseAnonKey \= typeof \_\_supabase\_anon\_key \!== 'undefined' ? \_\_supabase\_anon\_key : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmeGJzcnNhaHR0c3Vja2lza3R3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE3MzkzNDIsImV4cCI6MjA2NzMxNTM0Mn0.sANt0iU26PDQTGpijtdMPJM6RtNvP08OK9jCXTgh-HY';
+
+       let supabase, userId;  
+       let gameSubscription \= null;  
+       let playerSubscription \= null;
+
+       // \--- Game Logic \---
+
+       /\*\*  
+        \* Generates a unique ID for the current week (e.g., "2025-W30").  
+        \* This is the core of the weekly reset mechanism.  
+        \*/  
+       function getWeekId(date \= new Date()) {  
+           const d \= new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));  
+           // Set to nearest Thursday: current date \+ 4 \- current day number  
+           d.setUTCDate(d.getUTCDate() \+ 4 \- (d.getUTCDay() || 7));  
+           const yearStart \= new Date(Date.UTC(d.getUTCFullYear(), 0, 1));  
+           // Calculate full weeks to nearest Thursday  
+           const weekNo \= Math.ceil((((d \- yearStart) / 86400000) \+ 1) / 7);  
+           return \`${d.getUTCFullYear()}\-W${String(weekNo).padStart(2, '0')}\`;  
+       }
+
+       /\*\*  
+        \* Generates a random, valid Bingo board.  
+        \* @returns {Array\<Array\<string|null\>\>} 5x5 grid  
+        \*/  
+       function generateBingoBoard() {  
+           const board \= Array(5).fill(null).map(() \=\> Array(5).fill(null));  
+           const ranges \= {  
+               0: { min: 1, max: 15 },  // B  
+               1: { min: 16, max: 30 }, // I  
+               2: { min: 31, max: 45 }, // N  
+               3: { min: 46, max: 60 }, // G  
+               4: { min: 61, max: 75 }, // O  
+           };
+
+           for (let col \= 0; col \< 5; col\++) {  
+               const { min, max } \= ranges\[col\];  
+               const columnNumbers \= new Set();  
+               while (columnNumbers.size \< 5) {  
+                   const rand \= Math.floor(Math.random() \* (max \- min \+ 1)) \+ min;  
+                   columnNumbers.add(rand);  
+               }  
+               const sortedNumbers \= Array.from(columnNumbers);  
+               for (let row \= 0; row \< 5; row\++) {  
+                   board\[row\]\[col\] \= \`${"BINGO"\[col\]}${sortedNumbers\[row\]}\`;  
+               }  
+           }  
+           board\[2\]\[2\] \= "FREE"; // Center square  
+           return board;  
+       }
+
+       /\*\*  
+        \* Renders the player's Bingo board and marks called numbers.  
+        \*/  
+       function renderBoard(board, calledNumbers) {  
+           bingoBoardContainer.innerHTML \= '';  
+           const calledSet \= new Set(calledNumbers);  
+           calledSet.add("FREE"); // Free space is always marked
+
+           board.forEach(row \=\> {  
+               row.forEach(cellValue \=\> {  
+                   const cell \= document.createElement('div');  
+                   cell.className \= 'bingo-cell bg-white border border-gray-200';  
+                   const numberPart \= cellValue.replace(/\[A-Z\]/, '');  
+                   cell.textContent \= numberPart \=== 'REE' ? 'FREE' : numberPart;  
+                    
+                   if (calledSet.has(cellValue)) {  
+                       cell.classList.add('marked');  
+                   }  
+                   bingoBoardContainer.appendChild(cell);  
+               });  
+           });  
+       }  
+        
+       /\*\*  
+        \* Renders the list of all numbers called so far.  
+        \*/  
+       function renderCalledNumbers(numbers) {  
+           calledNumbersList.innerHTML \= '';  
+           if (numbers.length \=== 0) {  
+               calledNumbersList.innerHTML \= \`\<p class="text-gray-500 text-sm"\>No numbers called yet.\</p\>\`;  
+               lastCalledNumberEl.textContent \= '--';  
+               return;  
+           }  
+            
+           numbers.forEach(num \=\> {  
+               const el \= document.createElement('div');  
+               el.className \= 'w-12 h-12 flex items-center justify-center bg-white rounded-full shadow font-semibold border-2';  
+               const letter \= num.charAt(0);  
+               if (letter \=== 'B') el.classList.add('border-blue-500');  
+               else if (letter \=== 'I') el.classList.add('border-red-500');  
+               else if (letter \=== 'N') el.classList.add('border-green-500');  
+               else if (letter \=== 'G') el.classList.add('border-yellow-500');  
+               else if (letter \=== 'O') el.classList.add('border-purple-500');  
+                
+               el.textContent \= num;  
+               calledNumbersList.appendChild(el);  
+           });
+
+           lastCalledNumberEl.textContent \= numbers\[numbers.length \- 1\];  
+       }
+
+       /\*\*  
+        \* Checks if the player's board has a BINGO.  
+        \* @returns {boolean}  
+        \*/  
+       function checkWin(board, calledNumbers) {  
+           const marked \= (row, col) \=\> new Set(calledNumbers).has(board\[row\]\[col\] || 'FREE');  
+            
+           // Check rows  
+           for (let r \= 0; r \< 5; r\++) {  
+               if (marked(r,0) && marked(r,1) && marked(r,2) && marked(r,3) && marked(r,4)) return true;  
+           }  
+           // Check columns  
+           for (let c \= 0; c \< 5; c\++) {  
+               if (marked(0,c) && marked(1,c) && marked(2,c) && marked(3,c) && marked(4,c)) return true;  
+           }  
+           // Check diagonals  
+           if (marked(0,0) && marked(1,1) && marked(2,2) && marked(3,3) && marked(4,4)) return true;  
+           if (marked(0,4) && marked(1,3) && marked(2,2) && marked(3,1) && marked(4,0)) return true;
+
+           return false;  
+       }
+
+       /\*\*  
+        \* This function simulates the "AI" calling a new number daily.  
+        \* It's deterministic based on the day of the week.  
+        \*/  
+       async function runDailyNumberCall(gameId, gameState) {  
+           if (gameState.winner_user_id) return; // Game is over
+
+           const now \= new Date();  
+           // 0=Sun, 1=Mon, ..., 6=Sat. Let's make Monday the first day (day 1).  
+           const dayOfWeek \= now.getDay() \=== 0 ? 7 : now.getDay();  
+           const numbersThatShouldBeCalled \= dayOfWeek;
+
+           if (gameState.called_numbers.length \< numbersThatShouldBeCalled) {  
+               const numbersToCallCount \= numbersThatShouldBeCalled \- gameState.called_numbers.length;  
+               const letters \= "BINGO";  
+               const ranges \= { B: 15, I: 30, N: 45, G: 60, O: 75 };  
+               const existingNumbers \= new Set(gameState.called_numbers);
+
+               const newNumbers \= \[\];
+               for (let i \= 0; i \< numbersToCallCount; i\++) {  
+                   let newNumber;  
+                   let attempts \= 0;  
+                   do {  
+                       const letter \= letters\[Math.floor(Math.random() \* 5)\];  
+                       const min \= (ranges\[letter\] \- 14);  
+                       const number \= Math.floor(Math.random() \* 15) \+ min;  
+                       newNumber \= \`${letter}${number}\`;  
+                       attempts\++;  
+                   } while (existingNumbers.has(newNumber) && attempts \< 100);  
+                    
+                   if (attempts \< 100) {  
+                       newNumbers.push(newNumber);
+                       existingNumbers.add(newNumber); // Add to local set for next loop iteration  
+                   }  
+               }
+
+               if (newNumbers.length \> 0) {
+                   const updatedNumbers \= \[...gameState.called_numbers, ...newNumbers\];
+                   const { error } \= await supabase
+                       .from('games')
+                       .update({ 
+                           called_numbers: updatedNumbers,
+                           last_called_timestamp: new Date().toISOString()
+                       })
+                       .eq('id', gameId);
+                   
+                   if (error) console.error("Error updating called numbers:", error);
+               }
+           }  
+       }
+
+       /\*\*  
+        \* Main function to handle UI state based on game and player data.  
+        \*/  
+       function updateUi(gameState, playerDoc) {  
+           loadingState.classList.add('hidden');  
+            
+           // Case 1: Game has a winner  
+           if (gameState && gameState.winner_user_id) {  
+               activeGameState.classList.add('hidden');  
+               playState.classList.add('hidden');  
+               gameOverState.classList.remove('hidden');  
+                
+               winnerInfoEl.innerHTML \= \`  
+                   \<p class="text-lg font-semibold"\>${gameState.winner_user_id \=== userId ? "You are the winner\!" : "Winner Found\!"}\</p\>  
+                   \<p class="text-sm text-gray-600 font-mono"\>${gameState.winner_user_id}\</p\>  
+               \`;  
+               // Mock email notification  
+               if (gameState.winner_user_id \=== userId) {  
+                   gameOverTitleEl.textContent \= "Congratulations, you've won\!";  
+                   console.log("SIMULATING EMAIL: An email has been sent to the winner.");  
+               }
+
+               return;  
+           }
+
+           // Case 2: Game is active, but player hasn't joined  
+           if (gameState && \!playerDoc) {  
+               gameOverState.classList.add('hidden');  
+               activeGameState.classList.add('hidden');  
+               playState.classList.remove('hidden');  
+               return;  
+           }
+
+           // Case 3: Game is active and player has joined  
+           if (gameState && playerDoc) {  
+               gameOverState.classList.add('hidden');  
+               playState.classList.add('hidden');  
+               activeGameState.classList.remove('hidden');  
+                
+               const board \= playerDoc.board; // Supabase returns JSONB as object  
+               renderBoard(board, gameState.called_numbers);  
+               renderCalledNumbers(gameState.called_numbers);
+
+               // Check for a win  
+               if (checkWin(board, gameState.called_numbers)) {  
+                   bingoStatusEl.classList.remove('hidden');  
+                   // If there's no winner yet, declare this user as the winner  
+                   if (\!gameState.winner_user_id) {  
+                       supabase
+                           .from('games')
+                           .update({  
+                               winner_user_id: userId,  
+                               winner_timestamp: new Date().toISOString()  
+                           })
+                           .eq('id', gameState.id)
+                           .then(({ error }) \=\> {
+                               if (error) console.error("Error declaring winner:", error);
+                           });
+                   }  
+               } else {  
+                   bingoStatusEl.classList.add('hidden');  
+               }  
+           }  
+       }
+
+       /\*\*  
+        \* Sets up all Supabase subscriptions.  
+        \*/  
+       function setupListeners() {  
+           if (\!supabase || \!userId) return;
+
+           const weekId \= getWeekId();
+
+           // Clean up previous subscriptions  
+           if (gameSubscription) gameSubscription.unsubscribe();
+           if (playerSubscription) playerSubscription.unsubscribe();
+
+           let playerDocCache \= null;
+           let currentGameId \= null;
+
+           // Set up game subscription
+           gameSubscription \= supabase
+               .from('games')
+               .on('*', async (payload) \=\> {
+                   let gameState \= payload.new || payload.old;
+                   
+                   if (payload.eventType \=== 'DELETE') return;
+                   
+                   currentGameId \= gameState.id;
+                   
+                   // Run the daily number caller logic  
+                   await runDailyNumberCall(gameState.id, gameState);
+
+                   updateUi(gameState, playerDocCache);
+               })
+               .filter('week_id', 'eq', weekId)
+               .subscribe();
+
+           // Set up player subscription  
+           playerSubscription \= supabase
+               .from('players')
+               .on('*', async (payload) \=\> {
+                   let playerDoc \= null;
+                   
+                   if (payload.eventType \!== 'DELETE' && payload.new?.user_id \=== userId) {
+                       playerDoc \= payload.new;
+                   }
+                   
+                   playerDocCache \= playerDoc;
+
+                   // Get latest game state
+                   if (currentGameId) {
+                       const { data: gameState } \= await supabase
+                           .from('games')
+                           .select('*')
+                           .eq('id', currentGameId)
+                           .single();
+                       
+                       if (gameState) updateUi(gameState, playerDoc);
+                   }
+               })
+               .filter('user_id', 'eq', userId)
+               .subscribe();
+
+           // Initial load - get or create current week's game
+           loadCurrentGame(weekId);
+       }
+
+       async function loadCurrentGame(weekId) {
+           // Try to get existing game
+           let { data: gameState, error } \= await supabase
+               .from('games')
+               .select('*')
+               .eq('week_id', weekId)
+               .single();
+
+           // If no game exists, create one
+           if (error && error.code \=== 'PGRST116') {
+               const { data: newGame, error: createError } \= await supabase
+                   .from('games')
+                   .insert({
+                       week_id: weekId,
+                       called_numbers: \[\],
+                       winner_user_id: null,
+                       last_called_timestamp: null
+                   })
+                   .select()
+                   .single();
+
+               if (createError) {
+                   console.error("Error creating game:", createError);
+                   return;
+               }
+               gameState \= newGame;
+           } else if (error) {
+               console.error("Error loading game:", error);
+               return;
+           }
+
+           // Load player data
+           const { data: playerDoc } \= await supabase
+               .from('players')
+               .select('*')
+               .eq('game_id', gameState.id)
+               .eq('user_id', userId)
+               .single();
+
+           // Run daily number calling
+           await runDailyNumberCall(gameState.id, gameState);
+
+           updateUi(gameState, playerDoc);
+       }
+
+       // \--- Event Listeners \---  
+       playButton.addEventListener('click', async () \=\> {  
+           if (\!userId || \!supabase) return;  
+            
+           playButton.disabled \= true;  
+           playButton.textContent \= 'Generating Card...';
+
+           const board \= generateBingoBoard();  
+           const weekId \= getWeekId();
+
+           try {
+               // Get current game
+               const { data: game } \= await supabase
+                   .from('games')
+                   .select('id')
+                   .eq('week_id', weekId)
+                   .single();
+
+               if (\!game) {
+                   throw new Error('No active game found');
+               }
+
+               // Insert player record
+               const { error } \= await supabase
+                   .from('players')
+                   .insert({
+                       game_id: game.id,
+                       user_id: userId,
+                       board: board
+                   });
+
+               if (error) throw error;
+               
+               console.log("Player joined game for week:", weekId);  
+           } catch (error) {  
+               console.error("Error joining game:", error);  
+               playButton.disabled \= false;  
+               playButton.textContent \= 'Play Bingo';  
+           }  
+       });
+
+       // \--- App Initialization \---  
+       async function main() {  
+           try {  
+               supabase \= createClient(supabaseUrl, supabaseAnonKey);
+
+               // Sign in anonymously  
+               const { data: authData, error: authError } \= await supabase.auth.signInAnonymously();
+               
+               if (authError) {
+                   console.error("Auth error:", authError);
+                   loadingState.textContent \= "Error: Authentication failed. Please refresh.";
+                   return;
+               }
+
+               if (authData.user) {
+                   userId \= authData.user.id;
+                   userIdDisplay.textContent \= userId;
+                   setupListeners();
+               }
+
+               // Listen for auth state changes  
+               supabase.auth.onAuthStateChange((event, session) \=\> {  
+                   if (session?.user) {  
+                       userId \= session.user.id;  
+                       userIdDisplay.textContent \= userId;  
+                       setupListeners();  
+                   }  
+               });
+
+           } catch (error) {  
+               console.error("Supabase initialization failed:", error);  
+               loadingState.textContent \= "Error: Could not connect to the game service. Please refresh.";  
+           }  
+       }
+
+       main();  
+   \</script\>
+
+\</body\>  
+\</html\>
+

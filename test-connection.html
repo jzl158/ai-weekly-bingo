@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Supabase Connection Test</title>
+</head>
+<body>
+    <h1>Supabase Connection Test</h1>
+    <div id="results"></div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+        const supabaseUrl = 'https://kfxbsrsahttsuckisktw.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmeGJzcnNhaHR0c3Vja2lza3R3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE3MzkzNDIsImV4cCI6MjA2NzMxNTM0Mn0.sANt0iU26PDQTGpijtdMPJM6RtNvP08OK9jCXTgh-HY';
+
+        const results = document.getElementById('results');
+
+        async function testConnection() {
+            results.innerHTML = '<p>Testing connection...</p>';
+
+            try {
+                // Test 1: Create client
+                const supabase = createClient(supabaseUrl, supabaseAnonKey);
+                results.innerHTML += '<p>✅ Supabase client created</p>';
+
+                // Test 2: Try anonymous auth
+                const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+                
+                if (authError) {
+                    results.innerHTML += `<p>❌ Auth failed: ${authError.message}</p>`;
+                    console.error('Auth error:', authError);
+                    return;
+                }
+                
+                results.innerHTML += '<p>✅ Anonymous authentication successful</p>';
+                results.innerHTML += `<p>User ID: ${authData.user.id}</p>`;
+
+                // Test 3: Try to access games table
+                const { data: games, error: gamesError } = await supabase
+                    .from('games')
+                    .select('*')
+                    .limit(1);
+
+                if (gamesError) {
+                    results.innerHTML += `<p>❌ Database query failed: ${gamesError.message}</p>`;
+                    console.error('Database error:', gamesError);
+                    
+                    if (gamesError.code === '42P01') {
+                        results.innerHTML += '<p>💡 This means the "games" table doesn\'t exist. You need to run the schema.sql file.</p>';
+                    }
+                } else {
+                    results.innerHTML += '<p>✅ Database query successful</p>';
+                    results.innerHTML += `<p>Games found: ${games.length}</p>`;
+                }
+
+            } catch (error) {
+                results.innerHTML += `<p>❌ Unexpected error: ${error.message}</p>`;
+                console.error('Test error:', error);
+            }
+        }
+
+        testConnection();
+    </script>
+</body>
+</html>
