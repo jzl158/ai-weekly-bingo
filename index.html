@@ -5,6 +5,7 @@
    <meta name="viewport" content="width=device-width, initial-scale=1.0">
    <title>AI Weekly Bingo</title>
    <script src="https://cdn.tailwindcss.com"></script>
+   <script src="config.js"></script>
    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
    <style>
        body {
@@ -151,9 +152,6 @@
        const bingoStatusEl = document.getElementById('bingo-status');
 
        // --- Supabase Config ---
-       const supabaseUrl = typeof __supabase_url !== 'undefined' ? __supabase_url : 'https://kfxbsrsahttsuckisktw.supabase.co';
-       const supabaseAnonKey = typeof __supabase_anon_key !== 'undefined' ? __supabase_anon_key : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmeGJzcnNhaHR0c3Vja2lza3R3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE3MzkzNDIsImV4cCI6MjA2NzMxNTM0Mn0.sANt0iU26PDQTGpijtdMPJM6RtNvP08OK9jCXTgh-HY';
-
        let supabase, userId;
        let gameSubscription = null;
        let playerSubscription = null;
@@ -619,7 +617,14 @@
        // --- App Initialization ---
        async function main() {
            try {
-               supabase = createClient(supabaseUrl, supabaseAnonKey);
+               // Load configuration first
+               await window.BingoConfig.loadConfig();
+               
+               // Initialize Supabase with loaded configuration
+               supabase = createClient(
+                   window.BingoConfig.supabase.url, 
+                   window.BingoConfig.supabase.anonKey
+               );
 
                // Sign in anonymously
                const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
@@ -646,8 +651,12 @@
                });
 
            } catch (error) {
-               console.error("Supabase initialization failed:", error);
-               loadingState.textContent = "Error: Could not connect to the game service. Please refresh.";
+               console.error("Application initialization failed:", error);
+               if (error.message.includes('Missing Supabase configuration')) {
+                   loadingState.textContent = "Error: Game configuration missing. Please contact administrator.";
+               } else {
+                   loadingState.textContent = "Error: Could not connect to the game service. Please refresh.";
+               }
            }
        }
 
