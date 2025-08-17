@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Play Work</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="config.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -260,17 +261,79 @@
         </div>
     </div>
 
-    <script>
-        // Simple auth UI management (no backend functionality yet)
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+        
+        // DOM Elements
         const authModal = document.getElementById('authModal');
         const loginBtn = document.getElementById('loginBtn');
         const signupBtn = document.getElementById('signupBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
         const closeModal = document.getElementById('closeModal');
         const modalTitle = document.getElementById('modalTitle');
         const authSubmit = document.getElementById('authSubmit');
         const toggleAuthMode = document.getElementById('toggleAuthMode');
+        const signedOut = document.getElementById('signed-out');
+        const signedIn = document.getElementById('signed-in');
+        const userEmail = document.getElementById('userEmail');
         
         let isLoginMode = true;
+        let supabase;
+        
+        // Initialize Supabase
+        async function initSupabase() {
+            try {
+                console.log('Initializing Supabase...');
+                
+                // Check if config is available
+                if (!window.BingoConfig) {
+                    throw new Error('BingoConfig not found. Config.js may not be loaded.');
+                }
+                
+                console.log('Loading config...');
+                await window.BingoConfig.loadConfig();
+                
+                console.log('Config loaded, creating client...');
+                console.log('URL:', window.BingoConfig.supabase.url);
+                console.log('Key length:', window.BingoConfig.supabase.anonKey?.length || 'undefined');
+                
+                supabase = createClient(
+                    window.BingoConfig.supabase.url,
+                    window.BingoConfig.supabase.anonKey
+                );
+                
+                console.log('Supabase client created successfully');
+                
+                // Check current auth state
+                const { data: { session } } = await supabase.auth.getSession();
+                updateAuthUI(session?.user || null);
+                
+                // Listen for auth changes
+                supabase.auth.onAuthStateChange((event, session) => {
+                    updateAuthUI(session?.user || null);
+                });
+                
+                console.log('Supabase initialization complete');
+                
+            } catch (error) {
+                console.error('Failed to initialize Supabase:', error);
+                supabase = null; // Ensure it's null on failure
+                alert('Authentication service unavailable: ' + error.message);
+            }
+        }
+        
+        function updateAuthUI(user) {
+            if (user) {
+                signedOut.classList.add('hidden');
+                signedIn.classList.remove('hidden');
+                signedIn.classList.add('flex');
+                userEmail.textContent = user.email;
+            } else {
+                signedOut.classList.remove('hidden');
+                signedIn.classList.add('hidden');
+                signedIn.classList.remove('flex');
+            }
+        }
         
         function openModal(loginMode = true) {
             isLoginMode = loginMode;
@@ -284,10 +347,87 @@
         function closeModalHandler() {
             authModal.classList.add('hidden');
             authModal.classList.remove('flex');
+            document.getElementById('authForm').reset();
         }
         
+        async function handleAuth(email, password) {
+            try {
+                authSubmit.disabled = true;
+                authSubmit.textContent = 'Processing...';
+                
+                // Check if supabase is initialized
+                if (!supabase) {
+                    throw new Error('Authentication service not available. Please refresh the page.');
+                }
+                
+                console.log(`Attempting ${isLoginMode ? 'login' : 'signup'} with email:`, email);
+                
+                let result;
+                if (isLoginMode) {
+                    result = await supabase.auth.signInWithPassword({ email, password });
+                    console.log('Login result:', result);
+                } else {
+                    result = await supabase.auth.signUp({ 
+                        email, 
+                        password,
+                        options: {
+                            data: {
+                                email: email
+                            }
+                        }
+                    });
+                    console.log('Signup result:', result);
+                }
+                
+                if (result.error) {
+                    console.error('Auth error details:', result.error);
+                    throw result.error;
+                }
+                
+                if (!isLoginMode && result.data.user && !result.data.session) {
+                    alert('Account created! Please check your email to verify your account before signing in.');
+                    return;
+                }
+                
+                if (isLoginMode && result.data.session) {
+                    console.log('Login successful:', result.data.user.email);
+                    alert('Login successful!');
+                }
+                
+                closeModalHandler();
+            } catch (error) {
+                console.error('Auth error:', error);
+                let errorMessage = error.message || 'Authentication failed';
+                
+                // Handle specific error cases
+                if (error.message?.includes('Invalid login credentials')) {
+                    errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+                } else if (error.message?.includes('Email not confirmed')) {
+                    errorMessage = 'Please check your email and click the verification link before signing in.';
+                } else if (error.message?.includes('User already registered')) {
+                    errorMessage = 'An account with this email already exists. Try logging in instead.';
+                }
+                
+                alert(errorMessage);
+            } finally {
+                authSubmit.disabled = false;
+                authSubmit.textContent = isLoginMode ? 'Login' : 'Sign Up';
+            }
+        }
+        
+        async function handleLogout() {
+            try {
+                await supabase.auth.signOut();
+            } catch (error) {
+                console.error('Logout error:', error);
+                alert('Error signing out');
+            }
+        }
+        
+        // Event Listeners
         loginBtn.addEventListener('click', () => openModal(true));
         signupBtn.addEventListener('click', () => openModal(false));
+        logoutBtn.addEventListener('click', handleLogout);
         closeModal.addEventListener('click', closeModalHandler);
         
         toggleAuthMode.addEventListener('click', () => {
@@ -302,10 +442,13 @@
         
         document.getElementById('authForm').addEventListener('submit', (e) => {
             e.preventDefault();
-            // TODO: Implement actual authentication
-            alert('Authentication not yet implemented. Click OK to continue.');
-            closeModalHandler();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            handleAuth(email, password);
         });
+        
+        // Initialize when page loads
+        window.addEventListener('load', initSupabase);
     </script>
 </body>
 </html>
